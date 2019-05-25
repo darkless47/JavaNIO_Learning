@@ -27,7 +27,7 @@ public class ScreenCapture implements Runnable
 	/** Current screen size */
 	private Dimension dimension;
 	/** System Direct allocated buffer for Java NIO */
-	public ByteBuffer buf;
+	private ByteBuffer buf;
 	
 	/**
 	 * Constructor
@@ -39,12 +39,13 @@ public class ScreenCapture implements Runnable
 		dimension = tk.getScreenSize();
 		
 		// System Direct allocated buffer for Java NIO
-		buf = ByteBuffer.allocateDirect(100000);
+		this.buf = ByteBuffer.allocateDirect(100000);
 	}
 	
 	/**
 	 * For Runnable
 	 */
+	@Override
 	public void run()
 	{
 		BufferedImage img = captureScreen(scopeAroundCursor());
@@ -55,7 +56,7 @@ public class ScreenCapture implements Runnable
 			ImageIO.write(img, "jpg", baos);
 			baos.flush();
 			imgInByte = baos.toByteArray();
-			System.out.println(imgInByte.length);
+			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
 			baos.close();
 		}
 		catch (IOException e)
@@ -65,14 +66,14 @@ public class ScreenCapture implements Runnable
 		if(imgInByte != null)
 		{
 			
-			buf.clear();
-			buf.put(imgInByte);
-			buf.flip();
+			this.buf.clear();
+			this.buf.put(imgInByte);
+			this.buf.flip();
 			while(buf.hasRemaining())
 			{
 			    try
 			    {
-					MainEntry.sinkChannel_0.write(buf);
+					MainEntry.sinkChannel_0.write(this.buf);
 				}
 			    catch (IOException e)
 			    {
@@ -117,7 +118,7 @@ public class ScreenCapture implements Runnable
 				cursorPoint.x - scopeWidth/2, cursorPoint.y + scopeHeight/2,
 				cursorPoint.x + scopeWidth/2, cursorPoint.y + scopeHeight/2};
 		// Boundary check
-		for(int i:points)
+		for(int i = 0; i < 8; i++)
 		{
 			if(points[i] < 0)
 			{

@@ -32,17 +32,27 @@ public class MainEntry
 	
 	public static Thread thread_0;
 	
-	/** Thread pool used to execute screen capture in a fixed rate */
-	public static ScheduledThreadPoolExecutor screenCaptureExecutor;
-	
-	
 	public static Pipe pipe_0;
 	public static Pipe.SinkChannel sinkChannel_0;
 	public static Pipe.SourceChannel sourceChannel_0;
 	
+	/** Thread pool used to execute screen capture in a fixed rate */
+	private ScheduledThreadPoolExecutor screenCaptureExecutor;
+	/** For Screen capture thread */
+	private ScreenCapture screenCapture;
 	
+	/**
+	 * Constructor
+	 */
+	public MainEntry()
+	{
+		
+	}
 	
-	public static void main(String[] args)
+	/**
+	 * Set logger, configure pipe, launch threads
+	 */
+	public void run()
 	{
 		// Set the logger
 		MainEntry.logger.addHandler(MainEntry.handler);
@@ -66,25 +76,18 @@ public class MainEntry
 		}
 		
 		// Main thread
-		MainEntry.thread_0 = new Thread()
-		{
-			public void run()
-			{
-				MainEntry.javaNIO = new JavaNIO();
-				StringBuilder str = new StringBuilder();
-				str.append("JavaNIO thread named \"")
-				.append(Thread.currentThread().getName())
-				.append("\" is running.");
-				MainEntry.logger.log(Level.FINE, str.toString());
-			}
-		};
+		MainEntry.thread_0 = new Thread(new JavaNIO());
 		MainEntry.thread_0.start();
+		StringBuilder str = new StringBuilder();
+		str.append("JavaNIO thread is running.");
+		MainEntry.logger.log(Level.FINE, str.toString());
+		
 		
 		// Screen capture thread
-		ScreenCapture screenCapture = new ScreenCapture();
-		MainEntry.screenCaptureExecutor = new ScheduledThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
-		MainEntry.screenCaptureExecutor.scheduleAtFixedRate(screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
-		StringBuilder str = new StringBuilder();
+		this.screenCapture = new ScreenCapture();
+		this.screenCaptureExecutor = new ScheduledThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
+		this.screenCaptureExecutor.scheduleAtFixedRate(this.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
+		str = new StringBuilder();
 		str.append("Screen capture thread is running.");
 		MainEntry.logger.log(Level.FINE, str.toString());
 	}
