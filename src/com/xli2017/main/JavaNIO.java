@@ -51,14 +51,17 @@ public class JavaNIO extends JFrame implements Runnable
 	
 	// Functional
 	/** Flag for keep checking source pipe */
-	private boolean isRunning = false;
-	
+	public static boolean isRunning = false;
+	/** The buffer used to save data comes from pipe */
 	private ByteBuffer buf;
-
+	
+	/** MainEntry instance */
+	private MainEntry mainEntry;
+	
 	/**
 	 * Constructor
 	 */
-	public JavaNIO()
+	public JavaNIO(MainEntry main)
 	{	
 		// GUI
 		this.setTitle("JavaNIO Learning");
@@ -83,6 +86,13 @@ public class JavaNIO extends JFrame implements Runnable
 				{
 					public void windowClosing(WindowEvent winEvt)
 					{
+						// Shutdown the screen capture thread
+//						MainEntry.screenCaptureExecutor.shutdown();
+//						while(MainEntry.screenCaptureExecutor.isShutdown() != true)
+//						{
+//							// MainEntry.screenCaptureExecutor.isShutdown() returns true if its status is shutdown
+//							// Do nothing but wait
+//						}
 						System.exit(0);
 					}
 					
@@ -92,6 +102,9 @@ public class JavaNIO extends JFrame implements Runnable
 		
 		// Allocate the buffer
 		this.buf = ByteBuffer.allocateDirect(100000);
+		
+		// Point to MainEntry
+		this.mainEntry = main;
 	}
 	
 	/**
@@ -101,23 +114,22 @@ public class JavaNIO extends JFrame implements Runnable
 	public void run()
 	{
 		byte[] imgInByte = null;
-		while(this.isRunning)
+//		System.out.println("Reached, isRunning = " + JavaNIO.isRunning);
+		try
 		{
-			try
+			imgInByte = readPipe(MainEntry.sourceChannel_0);
+			if (imgInByte != null) // New data comes
 			{
-				imgInByte = readPipe(MainEntry.sourceChannel_0);
-				if (imgInByte != null) // New data comes
-				{
-					ByteArrayInputStream bais = new ByteArrayInputStream(imgInByte);
-					BufferedImage img = ImageIO.read(bais);
-					JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
-					//TODO image process
-				}
+				
+				ByteArrayInputStream bais = new ByteArrayInputStream(imgInByte);
+				BufferedImage img = ImageIO.read(bais);
+				JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
+				//TODO image process
 			}
-			catch (IOException e)
-			{
-				e.printStackTrace();
-			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
 		}
 	}
 	
@@ -129,14 +141,16 @@ public class JavaNIO extends JFrame implements Runnable
 	 */
 	private byte[] readPipe(Pipe.SourceChannel sourceChannel) throws IOException
 	{
-		byte[] imgInByte = new byte[100000];
 		int bytesRead = sourceChannel.read(this.buf);
 		if(bytesRead > 0) // New data available
 		{
+			byte[] imgInByte = new byte[bytesRead];
+			int index = 0; // The index of imgInByte
 			this.buf.flip();
 			while(this.buf.hasRemaining())
 			{
-				this.buf.get(imgInByte);
+				imgInByte[index] = this.buf.get();
+				index++;
 			}
 			this.buf.clear();
 			return imgInByte;
@@ -157,20 +171,22 @@ public class JavaNIO extends JFrame implements Runnable
 		@Override
 		public void actionPerformed(ActionEvent arg0)
 		{
-			if (isRunning) // Running status
+			if (JavaNIO.isRunning) // Running status
 			{
 				// Turn to OFF
-				isRunning = false;
+				mainEntry.stopRunning();
+				System.out.println("stopped");
+				JavaNIO.isRunning = false;
 				button_Start.setText("Start");
-				JavaNIO.logger.log(Level.FINE, "Pipe reading stopped.");
+//				JavaNIO.logger.log(Level.FINE, "Pipe reading stopped.");
 			}
 			else // Stop status
 			{
 				// Turn to ON
-				isRunning = true;
+				JavaNIO.isRunning = true;
 				button_Start.setText("Stop");
-				run();
-				JavaNIO.logger.log(Level.FINE, "Pipe reading starts.");
+				mainEntry.startRunning();
+//				JavaNIO.logger.log(Level.FINE, "Pipe reading starts.");
 			}
 		}
 	}

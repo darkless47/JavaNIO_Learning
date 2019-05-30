@@ -17,6 +17,10 @@ import java.util.logging.Logger;
  */
 public class MainEntry
 {
+	/** The number of threads will be used to run main panel task */
+	public static final int NUMBER_THREAD_MAIN_PANEL = 1;
+	/** The time step between two updates of main panel */
+	public static final int MAIN_PANEL_TIME_STEP = 100; // [milliseconds]
 	/** The number of threads will be used to run screen capture task */
 	public static final int NUMBER_THREAD_SCREEN_CAP = 1;
 	/** The time step between two screen captures */
@@ -28,18 +32,22 @@ public class MainEntry
 	public static Level loggerLevel = Level.FINE;
 	public static Level handlerLevel = Level.FINE;
 	
-	public static JavaNIO javaNIO;
-	
-	public static Thread thread_0;
-	
 	public static Pipe pipe_0;
 	public static Pipe.SinkChannel sinkChannel_0;
 	public static Pipe.SourceChannel sourceChannel_0;
 	
+	/** Thread pool used to execute main panel in a fixed rate */
+	private PausableThreadPoolExecutor mainPanelExecutor;
+	/** For main panel thread */
+	private JavaNIO javaNIO;
 	/** Thread pool used to execute screen capture in a fixed rate */
-	private ScheduledThreadPoolExecutor screenCaptureExecutor;
+	private PausableThreadPoolExecutor screenCaptureExecutor;
 	/** For Screen capture thread */
 	private ScreenCapture screenCapture;
+	/** String builder for the message */
+	private StringBuilder str;
+	/** Flag for thread executor status */
+	private boolean isExecutorStarted = false;
 	
 	/**
 	 * Constructor
@@ -76,19 +84,55 @@ public class MainEntry
 		}
 		
 		// Main thread
-		MainEntry.thread_0 = new Thread(new JavaNIO());
-		MainEntry.thread_0.start();
-		StringBuilder str = new StringBuilder();
-		str.append("JavaNIO thread is running.");
-		MainEntry.logger.log(Level.FINE, str.toString());
+		this.javaNIO = new JavaNIO(this);
+		this.mainPanelExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_MAIN_PANEL);
+		
+		
 		
 		
 		// Screen capture thread
 		this.screenCapture = new ScreenCapture();
-		this.screenCaptureExecutor = new ScheduledThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
-		this.screenCaptureExecutor.scheduleAtFixedRate(this.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
-		str = new StringBuilder();
-		str.append("Screen capture thread is running.");
+		this.screenCaptureExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
+		
+	}
+	
+	public void startRunning()
+	{
+		if (this.isExecutorStarted) // On paused
+		{
+			this.mainPanelExecutor.resume();
+			this.screenCaptureExecutor.resume();
+		}
+		else // First time run
+		{
+			this.mainPanelExecutor.scheduleAtFixedRate(this.javaNIO, 0, MAIN_PANEL_TIME_STEP, TimeUnit.MILLISECONDS);
+			this.screenCaptureExecutor.scheduleAtFixedRate(this.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
+			this.isExecutorStarted = true;
+		}
+		this.str = new StringBuilder();
+		this.str.append("\n\tJavaNIO thread is running.\n\tScreen capture thread is running.");
+		MainEntry.logger.log(Level.FINE, str.toString());
+	}
+	
+	public void stopRunning()
+	{
+		this.mainPanelExecutor.pause();
+		this.screenCaptureExecutor.pause();
+//		try
+//		{
+//			
+//			this.mainPanelExecutor.shutdownNow();
+//			this.screenCaptureExecutor.shutdownNow();
+//			this.mainPanelExecutor.awaitTermination(300, TimeUnit.MILLISECONDS);
+//			this.screenCaptureExecutor.awaitTermination(300, TimeUnit.MILLISECONDS);
+//			
+//		}
+//		catch (InterruptedException e)
+//		{
+//			e.printStackTrace();
+//		}
+		this.str = new StringBuilder();
+		this.str.append("\n\tJavaNIO thread stopped.\n\tScreen capture thread stopped.");
 		MainEntry.logger.log(Level.FINE, str.toString());
 	}
 

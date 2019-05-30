@@ -56,7 +56,7 @@ public class ScreenCapture implements Runnable
 			ImageIO.write(img, "jpg", baos);
 			baos.flush();
 			imgInByte = baos.toByteArray();
-			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
+//			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
 			baos.close();
 		}
 		catch (IOException e)
