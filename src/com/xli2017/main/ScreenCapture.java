@@ -37,6 +37,7 @@ public class ScreenCapture implements Runnable
 		// Toolkit to get current screen size
 		Toolkit tk = Toolkit.getDefaultToolkit();
 		dimension = tk.getScreenSize();
+		MainEntry.logger.log(Level.FINER, "Screen size is: " + dimension.width + " " + dimension.height);
 		
 		// System Direct allocated buffer for Java NIO
 		this.buf = ByteBuffer.allocateDirect(100000);
@@ -88,6 +89,15 @@ public class ScreenCapture implements Runnable
 	}
 	
 	/**
+	 * Obtain the dimension of scope
+	 * @return Dimension(width, height)
+	 */
+	public Dimension getScopeDimension()
+	{
+		return new Dimension(this.scopeWidth, this.scopeHeight);
+	}
+	
+	/**
 	 * Capture an area from current screen
 	 * @return the screenshot image
 	 */
@@ -112,6 +122,7 @@ public class ScreenCapture implements Runnable
 	{
 		// Get position of mouse cursor
 		Point cursorPoint = java.awt.MouseInfo.getPointerInfo().getLocation();
+		MainEntry.logger.log(Level.FINEST, "Cursor is at " + cursorPoint.x + " " + cursorPoint.y);
 		// Calculate 4 corners of the area of capturing
 		int[] points = {cursorPoint.x - scopeWidth/2, cursorPoint.y - scopeHeight/2,
 				cursorPoint.x + scopeWidth/2, cursorPoint.y - scopeHeight/2,
@@ -126,26 +137,28 @@ public class ScreenCapture implements Runnable
 			}
 			if(i%2 == 0) // for x value
 			{
-				if(points[i] > dimension.width)
+				if(points[i] > this.dimension.width)
 				{
-					points[i] = dimension.width;
+					points[i] = this.dimension.width;
 				}
 			}
 			else // for y value
 			{
-				if(points[i] > dimension.height)
+				if(points[i] > this.dimension.height)
 				{
-					points[i] = dimension.height;
+					points[i] = this.dimension.height;
 				}
 			}
 		}
-		int[] leftTop = {points[0], points[1]};
-//		int[] rightTop = {points[2], points[3]};
-//		int[] leftBottom = {points[4], points[5]};
-		int[] rightBottom = {points[6], points[7]};
+		int[] upperLeft = {points[0], points[1]};
+//		System.out.println(upperLeft[0] + " " + upperLeft[1]);
+//		int[] upperRight = {points[2], points[3]};
+//		int[] lowerLeft = {points[4], points[5]};
+//		int[] lowerRight = {points[6], points[7]};
 		
 		// Build the rectangle
-        Rectangle rec = new Rectangle(leftTop[0], leftTop[1], rightBottom[0], rightBottom[1]);
+        Rectangle rec = new Rectangle(upperLeft[0], upperLeft[1], this.scopeWidth, this.scopeHeight);
         return rec;
 	}
+	
 }

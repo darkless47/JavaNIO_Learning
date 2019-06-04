@@ -42,7 +42,7 @@ public class MainEntry
 	/** Thread pool used to execute screen capture in a fixed rate */
 	private PausableThreadPoolExecutor screenCaptureExecutor;
 	/** For Screen capture thread */
-	private ScreenCapture screenCapture;
+	public static ScreenCapture screenCapture;
 	/** String builder for the message */
 	private StringBuilder str;
 	/** Flag for thread executor status */
@@ -90,7 +90,7 @@ public class MainEntry
 		
 		
 		// Screen capture thread
-		this.screenCapture = new ScreenCapture();
+		MainEntry.screenCapture = new ScreenCapture();
 		this.screenCaptureExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
 		
 	}
@@ -105,7 +105,7 @@ public class MainEntry
 		else // First time run
 		{
 			this.mainPanelExecutor.scheduleAtFixedRate(this.javaNIO, 0, MAIN_PANEL_TIME_STEP, TimeUnit.MILLISECONDS);
-			this.screenCaptureExecutor.scheduleAtFixedRate(this.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
+			this.screenCaptureExecutor.scheduleAtFixedRate(MainEntry.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
 			this.isExecutorStarted = true;
 		}
 		this.str = new StringBuilder();
