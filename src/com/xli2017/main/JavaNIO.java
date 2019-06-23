@@ -13,6 +13,7 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.imageio.ImageIO;
@@ -106,13 +107,7 @@ public class JavaNIO extends JFrame implements Runnable
 				{
 					public void windowClosing(WindowEvent winEvt)
 					{
-						// Shutdown the screen capture thread
-//						MainEntry.screenCaptureExecutor.shutdown();
-//						while(MainEntry.screenCaptureExecutor.isShutdown() != true)
-//						{
-//							// MainEntry.screenCaptureExecutor.isShutdown() returns true if its status is shutdown
-//							// Do nothing but wait
-//						}
+						JavaNIO.logger.log(Level.FINER, "Window closed.");
 						System.exit(0);
 					}
 					
@@ -120,41 +115,40 @@ public class JavaNIO extends JFrame implements Runnable
 		);
 		this.revalidate();
 		
-		// Allocate the buffer
-		this.buf = ByteBuffer.allocateDirect(100000);
+		// System Direct allocated buffer for Java NIO
+		this.buf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
 		
 		// Point to MainEntry
 		this.mainEntry = main;
 	}
 	
 	/**
-	 * For runnable
+	 * For Runnable
 	 */
 	@Override
 	public void run()
 	{
 		byte[] imgInByte = null;
 //		System.out.println("Reached, isRunning = " + JavaNIO.isRunning);
-		try
-		{
-			imgInByte = readPipe(MainEntry.sourceChannel_0);
-			if (imgInByte != null) // New data comes
-			{
-				
-				ByteArrayInputStream bais = new ByteArrayInputStream(imgInByte);
-				this.img = ImageIO.read(bais);
-//				JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
-				
-				// Repaint the picture panel
-				this.picPanel.setPreferredSize(MainEntry.screenCapture.getScopeDimension());
-				this.picPanel.repaint();
-				this.picPanel.revalidate();
-			}
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+//		try
+//		{
+//			imgInByte = readPipe(MainEntry.sourceChannel_0);
+//			if (imgInByte != null) // New data comes
+//			{
+//				ByteArrayInputStream bais = new ByteArrayInputStream(imgInByte);
+//				this.img = ImageIO.read(bais);
+////				JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
+//				
+//				// Repaint the picture panel
+//				this.picPanel.setPreferredSize(MainEntry.screenCapture.getScopeDimension());
+//				this.picPanel.repaint();
+//				this.picPanel.revalidate();
+//			}
+//		}
+//		catch (IOException e)
+//		{
+//			e.printStackTrace();
+//		}
 	}
 	
 	/**

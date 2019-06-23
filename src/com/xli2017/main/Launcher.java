@@ -1,5 +1,10 @@
 package com.xli2017.main;
 
+/**
+ * Launcher for this project
+ * @author xli2017
+ *
+ */
 public class Launcher
 {
 

@@ -40,7 +40,7 @@ public class ScreenCapture implements Runnable
 		MainEntry.logger.log(Level.FINER, "Screen size is: " + dimension.width + " " + dimension.height);
 		
 		// System Direct allocated buffer for Java NIO
-		this.buf = ByteBuffer.allocateDirect(100000);
+		this.buf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
 	}
 	
 	/**

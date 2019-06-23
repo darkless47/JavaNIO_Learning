@@ -16,6 +16,8 @@ import java.util.logging.Logger;
  */
 public class MainEntry
 {
+	/** The size of the byte buffer to store data for pipe */
+	public static final int BUFFER_SIZE = 300000; // 300,000 is for 1920x1080, it should enough
 	/** The number of threads will be used to run main panel task */
 	public static final int NUMBER_THREAD_MAIN_PANEL = 1;
 	/** The time step between two updates of main panel */
@@ -24,6 +26,8 @@ public class MainEntry
 	public static final int NUMBER_THREAD_SCREEN_CAP = 1;
 	/** The time step between two screen captures */
 	public static final int CAPTURE_TIME_STEP = 100; // [milliseconds]
+	/** The number of threads will be used to run image processor */
+	public static final int NUMBER_THREAD_IMAGE_PROC = 2;
 	
 	// Logger
 	public static Logger logger = Logger.getLogger(MainEntry.class.getName());
@@ -43,6 +47,12 @@ public class MainEntry
 	private PausableThreadPoolExecutor screenCaptureExecutor;
 	/** For Screen capture thread */
 	public static ScreenCapture screenCapture;
+	/** Thread pool used to execute image processor */
+	private PausableThreadPoolExecutor imageProcessExecutor;
+	/** For image process thread */
+	private ImageProcessor imageProcessor;
+	
+	
 	/** String builder for the message */
 	private StringBuilder str;
 	/** Flag for thread executor status */
@@ -85,27 +95,29 @@ public class MainEntry
 		// Main thread
 		this.javaNIO = new JavaNIO(this);
 		this.mainPanelExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_MAIN_PANEL);
-		
-		
-		
-		
 		// Screen capture thread
 		MainEntry.screenCapture = new ScreenCapture();
 		this.screenCaptureExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
-		
+		// Image process thread
+		this.imageProcessor = new ImageProcessor(MainEntry.sourceChannel_0);
+		this.imageProcessExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_IMAGE_PROC);
 	}
 	
 	public void startRunning()
 	{
+		// Check if executor(s) just been paused
 		if (this.isExecutorStarted) // On paused
 		{
 			this.mainPanelExecutor.resume();
 			this.screenCaptureExecutor.resume();
+			this.imageProcessExecutor.resume();
 		}
 		else // First time run
 		{
+			// Start executor(s)
 			this.mainPanelExecutor.scheduleAtFixedRate(this.javaNIO, 0, MAIN_PANEL_TIME_STEP, TimeUnit.MILLISECONDS);
 			this.screenCaptureExecutor.scheduleAtFixedRate(MainEntry.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
+			this.imageProcessExecutor.execute(this.imageProcessor);
 			this.isExecutorStarted = true;
 		}
 		this.str = new StringBuilder();
@@ -117,19 +129,7 @@ public class MainEntry
 	{
 		this.mainPanelExecutor.pause();
 		this.screenCaptureExecutor.pause();
-//		try
-//		{
-//			
-//			this.mainPanelExecutor.shutdownNow();
-//			this.screenCaptureExecutor.shutdownNow();
-//			this.mainPanelExecutor.awaitTermination(300, TimeUnit.MILLISECONDS);
-//			this.screenCaptureExecutor.awaitTermination(300, TimeUnit.MILLISECONDS);
-//			
-//		}
-//		catch (InterruptedException e)
-//		{
-//			e.printStackTrace();
-//		}
+		this.imageProcessExecutor.pause();
 		this.str = new StringBuilder();
 		this.str.append("\n\tJavaNIO thread stopped.\n\tScreen capture thread stopped.");
 		MainEntry.logger.log(Level.FINE, str.toString());
