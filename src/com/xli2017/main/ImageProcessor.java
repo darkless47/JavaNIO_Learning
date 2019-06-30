@@ -13,25 +13,22 @@ import java.util.logging.Level;
  */
 public class ImageProcessor implements Runnable
 {
-	/** Denote if this instance is working */
-	private boolean isWorking;
-	/** Denote if image data is available from source channel */
-	private boolean isImageDataReady;
 	/** Source of image data */
 	private Pipe.SourceChannel sourceChannel;
 	/** The buffer used to save data comes from source channel */
-	private ByteBuffer buf;
+	private ByteBuffer sourceBuf;
+	/** The buffer used to send data to sink channel */
+	private ByteBuffer sinkBuf;
 	
 	/**
 	 * Constructor
 	 */
 	public ImageProcessor(Pipe.SourceChannel sourceChannelInput)
 	{
-		this.isWorking = false;
-		this.isImageDataReady = false;
 		this.sourceChannel = sourceChannelInput;
-		// System Direct allocated buffer for Java NIO
-		this.buf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
+		/* System Direct allocated buffer for Java NIO */
+		this.sourceBuf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
+		this.sinkBuf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
 	}
 	
 	/**
@@ -40,41 +37,47 @@ public class ImageProcessor implements Runnable
 	@Override
 	public void run()
 	{
-		// Check if this instance is working
-		if(this.isWorking) // Working
+		byte[] imgInByte = null;
+		
+		// Constant loop
+		while(true)
 		{
-			
-		}
-		else // Not working
-		{
-			byte[] imgInByte = null;
-			while(!this.isImageDataReady) // When image data doesn't show at the source pipe
+			try
 			{
-				try
-				{
-					// This is a synchronized method
-					imgInByte = this.readPipe(this.sourceChannel);
-				}
-				catch (IOException e)
-				{
-					e.printStackTrace();
-				}
+				// Try to read data from pipe
+				imgInByte = this.readPipe(this.sourceChannel); // This is a synchronized method
+			}
+			catch (IOException e)
+			{
+				e.printStackTrace();
+			}
+			
+			if (imgInByte != null) // New data comes
+			{
+				// Get current thread name
+				Thread t = Thread.currentThread();
+			    String tName = t.getName();
+				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length);
 				
-				if (imgInByte != null) // New data comes
+				imgInByte = DataBox.getData(imgInByte);
+				
+				/* Send data to GUI */
+				this.sinkBuf.clear();
+				this.sinkBuf.put(imgInByte);
+				this.sinkBuf.flip();
+				while(this.sinkBuf.hasRemaining())
 				{
-					// Set flags to true
-					this.isImageDataReady = true;
-					this.isWorking = true;
-					// Get current thread name
-					Thread t = Thread.currentThread();
-				    String tName = t.getName();
-					MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length);
-					this.isWorking = false;
-					this.isImageDataReady = false;
+				    try
+				    {
+						MainEntry.sinkChannel_1.write(this.sinkBuf);
+					}
+				    catch (IOException e)
+				    {
+						e.printStackTrace();
+					}
 				}
 			}
 		}
-		
 	}
 	
 	/**
@@ -85,18 +88,18 @@ public class ImageProcessor implements Runnable
 	 */
 	private synchronized byte[] readPipe(Pipe.SourceChannel sourceChannel) throws IOException
 	{
-		int bytesRead = sourceChannel.read(this.buf);
+		int bytesRead = sourceChannel.read(this.sourceBuf);
 		if(bytesRead > 0) // New data available
 		{
 			byte[] imgInByte = new byte[bytesRead];
 			int index = 0; // The index of imgInByte
-			this.buf.flip();
-			while(this.buf.hasRemaining())
+			this.sourceBuf.flip();
+			while(this.sourceBuf.hasRemaining())
 			{
-				imgInByte[index] = this.buf.get();
+				imgInByte[index] = this.sourceBuf.get();
 				index++;
 			}
-			this.buf.clear();
+			this.sourceBuf.clear();
 			return imgInByte;
 		}
 		else // No new data

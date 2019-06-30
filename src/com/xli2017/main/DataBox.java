@@ -1,0 +1,231 @@
+package com.xli2017.main;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.text.ParseException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.logging.Level;
+
+/**
+ * Includes several methods that help to build byte array with header added from original data
+ * Header may includes:
+ * 		length of header
+ * 		time stamp
+ * 		comes from which thread
+ * 		processing time
+ * 
+ * @author xli2017
+ *
+ */
+public abstract class DataBox
+{
+	/** Separator character */
+	public static final byte SEPARATOR = 30; // Dec 30 = (record separator)
+	/** For header byte array list, to locate the section for length */
+	public static final int SECTION_NUMBER_LENGTH = 0;
+	/** For header byte array list, to locate the section for time and date */
+	public static final int SECTION_NUMBER_DATE = 1;
+	
+	/**
+	 * Add header to a byte array of data
+	 * @param original Original data byte array
+	 * @param date Time stamp
+	 * @return Concatenated byte array
+	 */
+	public static byte[] addHeader(byte[] original, Date date)
+	{
+		/* Header length byte */
+		byte[] headerLengthByte = null;
+		
+		// Get time byte
+		/* Use this synchronized method to get date */ 
+    	String dateStr = null;
+		try
+		{
+			dateStr = DateSyncUtil.formatDate(date);
+		}
+		catch (ParseException e1)
+		{
+			e1.printStackTrace();
+		}
+		byte dateByte[] = dateStr.getBytes();
+		
+		/*
+		 * Following calculation:
+		 * 2 - Two digits for header length, 0 ~ 99
+		 * 1 - Separator
+		 */
+		int headerLength = 2 + 1 + dateByte.length + 1;
+		if(headerLength > 99)
+		{
+			MainEntry.logger.log(Level.SEVERE, "The value of header length is too large.");
+			return null;
+		}
+		else
+		{
+			headerLengthByte = Integer.toString(headerLength).getBytes();
+		}
+		
+		// Output stream for concatenating
+		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+		try
+		{
+			outputStream.write(headerLengthByte); // Header length
+			outputStream.write(DataBox.SEPARATOR); // Separator
+			outputStream.write(dateByte); // Write time first
+			outputStream.write(DataBox.SEPARATOR); // Separator
+			outputStream.write(original); // Data
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		
+		// Byte array going to be returned
+		byte[] result = outputStream.toByteArray();
+		return result;
+	}
+	
+	/**
+	 * Get original data from a boxed byte array
+	 * @param original Boxed byte array with header
+	 * @return Original data
+	 */
+	public static byte[] getData(byte[] original)
+	{
+		/* bytes going to be returned */
+		byte[] result = null;
+		/*Get header length */
+		int headerLength = getHeaderLength(original);
+		/* Only copy data part of the bytes */
+		result = Arrays.copyOfRange(original, headerLength, original.length);
+		/* Return the result bytes */
+		return result;
+	}
+	
+	public static ArrayList<byte[]> getHeader(byte[] original)
+	{
+		/*Get header length */
+		int headerLength = getHeaderLength(original);
+		/* Only copy header part of the bytes */
+		byte[] header = Arrays.copyOfRange(original, 0, headerLength);
+		
+		ArrayList<byte[]> headerByteArrayList = new ArrayList<byte[]>();
+		
+		/* Indicate which section the index is in
+		 * section 0 = header length bytes
+		 * section 1 = time bytes
+		 * 
+		 * */
+		int section = 0;
+		/* Indicate the index of start of current section */
+		int indexOfSectionStart = 0;
+		
+		for(int i = 0; i<header.length; i++)
+		{
+			if (header[i] == DataBox.SEPARATOR) // Found the separator
+			{
+				if (section == 0) // For header length bytes
+				{
+					byte[] lengthBytes = Arrays.copyOfRange(header, indexOfSectionStart, i-1); // i-1 because we do not want separator been included
+					headerByteArrayList.add(lengthBytes); // Add time bytes to return array list
+					section++; // Move to the next section
+					indexOfSectionStart = i+1; // Move the index to start of the next section
+				}
+				if (section == 1) // For time bytes
+				{
+					byte[] timeBytes = Arrays.copyOfRange(header, indexOfSectionStart, i-1); // i-1 because we do not want separator been included
+					headerByteArrayList.add(timeBytes); // Add time bytes to return array list
+					section++; // Move to the next section
+					indexOfSectionStart = i+1; // Move the index to start of the next section
+				}
+				
+				// Here may add more components of the header
+				
+			}
+		}
+		
+		/* Return the header components */
+		return headerByteArrayList;
+	}
+	
+	/**
+	 * Read the header length from a boxed byte array
+	 * @param original Boxed byte array
+	 * @return The length of the header
+	 */
+	public static int getHeaderLength(byte[] original)
+	{
+		/* Get the bytes contains length of the header */
+		byte[] headerLengthByte = Arrays.copyOfRange(original, 0, 2);
+//		System.out.println(headerLengthByte.length);
+		/* Convert length bytes to integer */
+		int headerLength = IntFromDecimalAscii(headerLengthByte);
+//		System.out.println(headerLength);
+		/* Return an integer indicates the length of the header */
+		return headerLength;
+	}
+	
+	/**
+	 * Parse date from a date string
+	 * @param headerByteList An byte array list contains components of a header 
+	 * @return date
+	 */
+	public Date getDate(ArrayList<byte[]> headerByteList)
+	{
+		String dateString = headerByteList.get(DataBox.SECTION_NUMBER_DATE).toString();
+		Date date = null;
+		try
+		{
+			date = DateSyncUtil.parse(dateString);
+		}
+		catch (ParseException e)
+		{
+			e.printStackTrace();
+		}
+		
+		return date;
+	}
+	
+	/**
+	 * One implementation for converting decimal numbers
+	 * @author Jason Watkins
+	 * @param bytes byte array need to be converted
+	 * @return integer
+	 */
+	private static int IntFromDecimalAscii(byte[] bytes)
+	{
+	    int result = 0;
+
+	    // For each digit, add the digit's value times 10^n, where n is the
+	    // column number counting from right to left starting at 0.
+	    for(int i = 0; i < bytes.length; ++i)
+	    {
+	        // ASCII digits are in the range 48 <= n <= 57. This code only
+	        // makes sense if we are dealing exclusively with digits, so
+	        // throw if we encounter a non-digit character
+	        if(bytes[i] < 48 || bytes[i] > 57)
+	        {
+	            MainEntry.logger.log(Level.SEVERE, "Non-digit character present");
+	            return -1;
+	        }
+
+	        // The bytes are in order from most to least significant, so
+	        // we need to reverse the index to get the right column number
+	        int exp = bytes.length - i - 1;
+
+	        // Digits in ASCII start with 0 at 48, and move sequentially
+	        // to 9 at 57, so we can simply subtract 48 from a valid digit
+	        // to get its numeric value
+	        int digitValue = bytes[i] - 48;
+
+	        // Finally, add the digit value times the column value to the
+	        // result accumulator
+	        result += digitValue * (int)Math.pow(10, exp);
+	    }
+
+	    return result;
+	}
+}

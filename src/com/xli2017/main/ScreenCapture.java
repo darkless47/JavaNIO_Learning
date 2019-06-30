@@ -9,6 +9,7 @@ import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.logging.Level;
 
 import javax.imageio.ImageIO;
@@ -57,6 +58,9 @@ public class ScreenCapture implements Runnable
 			ImageIO.write(img, "jpg", baos);
 			baos.flush();
 			imgInByte = baos.toByteArray();
+			/* Add date header here */
+			Date date = new Date();
+			imgInByte = DataBox.addHeader(imgInByte, date);
 //			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
 			baos.close();
 		}
@@ -70,7 +74,7 @@ public class ScreenCapture implements Runnable
 			this.buf.clear();
 			this.buf.put(imgInByte);
 			this.buf.flip();
-			while(buf.hasRemaining())
+			while(this.buf.hasRemaining())
 			{
 			    try
 			    {

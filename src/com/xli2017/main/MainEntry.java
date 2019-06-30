@@ -35,9 +35,19 @@ public class MainEntry
 	public static Level loggerLevel = Level.FINE;
 	public static Level handlerLevel = Level.FINE;
 	
+	// Date
+	/** Create a thread-safe synchronized date instance */
+	public static DateSyncUtil dateUtil = new DateSyncUtil();
+	
+	/** Pipe 0 for transmitting data between image capture thread and image process thread */
 	public static Pipe pipe_0;
 	public static Pipe.SinkChannel sinkChannel_0;
 	public static Pipe.SourceChannel sourceChannel_0;
+	
+	/** Pipe 1 for transmitting data between image process thread and GUI thread */
+	public static Pipe pipe_1;
+	public static Pipe.SinkChannel sinkChannel_1;
+	public static Pipe.SourceChannel sourceChannel_1;
 	
 	/** Thread pool used to execute main panel in a fixed rate */
 	private PausableThreadPoolExecutor mainPanelExecutor;
@@ -48,9 +58,9 @@ public class MainEntry
 	/** For Screen capture thread */
 	public static ScreenCapture screenCapture;
 	/** Thread pool used to execute image processor */
-	private PausableThreadPoolExecutor imageProcessExecutor;
+	private PausableThreadPoolExecutor[] imageProcessExecutor;
 	/** For image process thread */
-	private ImageProcessor imageProcessor;
+	private ImageProcessor[] imageProcessor;
 	
 	
 	/** String builder for the message */
@@ -79,13 +89,21 @@ public class MainEntry
 		// Initial the pipe
 		try
 		{
-			// Open the pipe
+			// Open the pipe 0
 			pipe_0 = Pipe.open();
 			// Set the sink and source pipe to blocking mode
 			pipe_0.sink().configureBlocking(false);
 			pipe_0.source().configureBlocking(false);
 			sinkChannel_0 = pipe_0.sink();
 			sourceChannel_0 = pipe_0.source();
+			
+			// Open the pipe 1
+			pipe_1 = Pipe.open();
+			// Set the sink and source pipe to blocking mode
+			pipe_1.sink().configureBlocking(false);
+			pipe_1.source().configureBlocking(false);
+			sinkChannel_1 = pipe_1.sink();
+			sourceChannel_1 = pipe_1.source();
 		}
 		catch (IOException e)
 		{
@@ -99,8 +117,13 @@ public class MainEntry
 		MainEntry.screenCapture = new ScreenCapture();
 		this.screenCaptureExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
 		// Image process thread
-		this.imageProcessor = new ImageProcessor(MainEntry.sourceChannel_0);
-		this.imageProcessExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_IMAGE_PROC);
+		this.imageProcessor = new ImageProcessor[NUMBER_THREAD_IMAGE_PROC];
+		this.imageProcessExecutor = new PausableThreadPoolExecutor[NUMBER_THREAD_IMAGE_PROC];
+		for(int i = 0; i < NUMBER_THREAD_IMAGE_PROC; i++)
+		{
+			this.imageProcessor[i] = new ImageProcessor(MainEntry.sourceChannel_0);
+			this.imageProcessExecutor[i] = new PausableThreadPoolExecutor(1);
+		}
 	}
 	
 	public void startRunning()
@@ -110,14 +133,22 @@ public class MainEntry
 		{
 			this.mainPanelExecutor.resume();
 			this.screenCaptureExecutor.resume();
-			this.imageProcessExecutor.resume();
+			for(int i = 0; i < NUMBER_THREAD_IMAGE_PROC; i++)
+			{
+				this.imageProcessExecutor[i].resume();
+			}
+			
 		}
 		else // First time run
 		{
 			// Start executor(s)
 			this.mainPanelExecutor.scheduleAtFixedRate(this.javaNIO, 0, MAIN_PANEL_TIME_STEP, TimeUnit.MILLISECONDS);
 			this.screenCaptureExecutor.scheduleAtFixedRate(MainEntry.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
-			this.imageProcessExecutor.execute(this.imageProcessor);
+			for(int i = 0; i < NUMBER_THREAD_IMAGE_PROC; i++)
+			{
+				this.imageProcessExecutor[i].execute(this.imageProcessor[i]);
+			}
+			
 			this.isExecutorStarted = true;
 		}
 		this.str = new StringBuilder();
@@ -129,7 +160,10 @@ public class MainEntry
 	{
 		this.mainPanelExecutor.pause();
 		this.screenCaptureExecutor.pause();
-		this.imageProcessExecutor.pause();
+		for(int i = 0; i < NUMBER_THREAD_IMAGE_PROC; i++)
+		{
+			this.imageProcessExecutor[i].pause();
+		}
 		this.str = new StringBuilder();
 		this.str.append("\n\tJavaNIO thread stopped.\n\tScreen capture thread stopped.");
 		MainEntry.logger.log(Level.FINE, str.toString());

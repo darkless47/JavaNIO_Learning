@@ -69,7 +69,7 @@ public class JavaNIO extends JFrame implements Runnable
 		this.setTitle("JavaNIO Learning");
 		this.setLayout(new GridLayout(1, 1));
 		this.setResizable(true);
-		Dimension screenSize =Toolkit.getDefaultToolkit().getScreenSize();
+		Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
 		this.setLocation(screenSize.width/2-(JavaNIO.MAIN_WIDTH + 10)/2,screenSize.height/2-(JavaNIO.MAIN_HEIGHT + 10)/2);
 		this.setSize(JavaNIO.MAIN_WIDTH + 10, JavaNIO.MAIN_HEIGHT + 10);
 		this.setVisible(true);
@@ -130,25 +130,25 @@ public class JavaNIO extends JFrame implements Runnable
 	{
 		byte[] imgInByte = null;
 //		System.out.println("Reached, isRunning = " + JavaNIO.isRunning);
-//		try
-//		{
-//			imgInByte = readPipe(MainEntry.sourceChannel_0);
-//			if (imgInByte != null) // New data comes
-//			{
-//				ByteArrayInputStream bais = new ByteArrayInputStream(imgInByte);
-//				this.img = ImageIO.read(bais);
-////				JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
-//				
-//				// Repaint the picture panel
-//				this.picPanel.setPreferredSize(MainEntry.screenCapture.getScopeDimension());
-//				this.picPanel.repaint();
-//				this.picPanel.revalidate();
-//			}
-//		}
-//		catch (IOException e)
-//		{
-//			e.printStackTrace();
-//		}
+		try
+		{
+			imgInByte = readPipe(MainEntry.sourceChannel_1);
+			if (imgInByte != null) // New data comes
+			{
+				ByteArrayInputStream bais = new ByteArrayInputStream(imgInByte);
+				this.img = ImageIO.read(bais);
+//				JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
+				
+				// Repaint the picture panel
+				this.picPanel.setPreferredSize(MainEntry.screenCapture.getScopeDimension());
+				this.picPanel.repaint();
+				this.picPanel.revalidate();
+			}
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 	}
 	
 	/**
