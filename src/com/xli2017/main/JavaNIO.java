@@ -34,10 +34,10 @@ public class JavaNIO extends JFrame implements Runnable
 	 */
 	private static final long serialVersionUID = 1L;
 	
-	// Logger
+	/* Logger */
 	public static Logger logger = MainEntry.logger;
 	
-	// GUI
+	/* GUI */
 	/** Define main panel width */
 	private static final int MAIN_WIDTH = 230; // [pixel]
 	/* Define main panel height */
@@ -51,7 +51,7 @@ public class JavaNIO extends JFrame implements Runnable
 	/** Start button */
 	private JButton button_Start;
 	
-	// Functional
+	/* Functional */
 	/** Flag for keep checking source pipe */
 	public static boolean isRunning = false;
 	/** The buffer used to save data comes from pipe */
@@ -65,7 +65,7 @@ public class JavaNIO extends JFrame implements Runnable
 	 */
 	public JavaNIO(MainEntry main)
 	{	
-		// GUI
+		/* GUI */
 		this.setTitle("JavaNIO Learning");
 		this.setLayout(new GridLayout(1, 1));
 		this.setResizable(true);
@@ -115,10 +115,10 @@ public class JavaNIO extends JFrame implements Runnable
 		);
 		this.revalidate();
 		
-		// System Direct allocated buffer for Java NIO
+		/* System Direct allocated buffer for Java NIO */
 		this.buf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
 		
-		// Point to MainEntry
+		/* Point to MainEntry */
 		this.mainEntry = main;
 	}
 	
@@ -139,7 +139,7 @@ public class JavaNIO extends JFrame implements Runnable
 				this.img = ImageIO.read(bais);
 //				JavaNIO.logger.log(Level.FINE, "Received: " + Integer.toString(imgInByte.length));
 				
-				// Repaint the picture panel
+				/* Repaint the picture panel */
 				this.picPanel.setPreferredSize(MainEntry.screenCapture.getScopeDimension());
 				this.picPanel.repaint();
 				this.picPanel.revalidate();
@@ -191,7 +191,7 @@ public class JavaNIO extends JFrame implements Runnable
 		{
 			if (JavaNIO.isRunning) // Running status
 			{
-				// Turn to OFF
+				/* Turn to OFF */
 				mainEntry.stopRunning();
 				JavaNIO.isRunning = false;
 				button_Start.setText("Start");
@@ -199,7 +199,7 @@ public class JavaNIO extends JFrame implements Runnable
 			}
 			else // Stop status
 			{
-				// Turn to ON
+				/* Turn to ON */
 				JavaNIO.isRunning = true;
 				button_Start.setText("Stop");
 				mainEntry.startRunning();

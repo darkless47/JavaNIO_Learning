@@ -29,13 +29,13 @@ public class MainEntry
 	/** The number of threads will be used to run image processor */
 	public static final int NUMBER_THREAD_IMAGE_PROC = 2;
 	
-	// Logger
+	/* Logger */
 	public static Logger logger = Logger.getLogger(MainEntry.class.getName());
 	public static ConsoleHandler handler = new ConsoleHandler();
 	public static Level loggerLevel = Level.FINE;
 	public static Level handlerLevel = Level.FINE;
 	
-	// Date
+	/* Date */
 	/** Create a thread-safe synchronized date instance */
 	public static DateSyncUtil dateUtil = new DateSyncUtil();
 	
@@ -81,25 +81,25 @@ public class MainEntry
 	 */
 	public void run()
 	{
-		// Set the logger
+		/* Set the logger */
 		MainEntry.logger.addHandler(MainEntry.handler);
 		MainEntry.logger.setLevel(MainEntry.loggerLevel);
 		MainEntry.handler.setLevel(MainEntry.handlerLevel);
 		
-		// Initial the pipe
+		/* Initial the pipe */
 		try
 		{
-			// Open the pipe 0
+			/* Open the pipe 0 */
 			pipe_0 = Pipe.open();
-			// Set the sink and source pipe to blocking mode
+			/* Set the sink and source pipe to blocking mode */
 			pipe_0.sink().configureBlocking(false);
 			pipe_0.source().configureBlocking(false);
 			sinkChannel_0 = pipe_0.sink();
 			sourceChannel_0 = pipe_0.source();
 			
-			// Open the pipe 1
+			/* Open the pipe 1 */
 			pipe_1 = Pipe.open();
-			// Set the sink and source pipe to blocking mode
+			/* Set the sink and source pipe to blocking mode */
 			pipe_1.sink().configureBlocking(false);
 			pipe_1.source().configureBlocking(false);
 			sinkChannel_1 = pipe_1.sink();
@@ -110,13 +110,13 @@ public class MainEntry
 			e.printStackTrace();
 		}
 		
-		// Main thread
+		/* Main thread */
 		this.javaNIO = new JavaNIO(this);
 		this.mainPanelExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_MAIN_PANEL);
-		// Screen capture thread
+		/* Screen capture thread */
 		MainEntry.screenCapture = new ScreenCapture();
 		this.screenCaptureExecutor = new PausableThreadPoolExecutor(NUMBER_THREAD_SCREEN_CAP);
-		// Image process thread
+		/* Image process thread */
 		this.imageProcessor = new ImageProcessor[NUMBER_THREAD_IMAGE_PROC];
 		this.imageProcessExecutor = new PausableThreadPoolExecutor[NUMBER_THREAD_IMAGE_PROC];
 		for(int i = 0; i < NUMBER_THREAD_IMAGE_PROC; i++)
@@ -126,9 +126,13 @@ public class MainEntry
 		}
 	}
 	
+	/**
+	 * The method to start or resume the executor(s)
+	 * @see PausableThreadPoolExecutor
+	 */
 	public void startRunning()
 	{
-		// Check if executor(s) just been paused
+		/* Check if executor(s) just been paused */
 		if (this.isExecutorStarted) // On paused
 		{
 			this.mainPanelExecutor.resume();
@@ -141,7 +145,7 @@ public class MainEntry
 		}
 		else // First time run
 		{
-			// Start executor(s)
+			/* Start executor(s) */
 			this.mainPanelExecutor.scheduleAtFixedRate(this.javaNIO, 0, MAIN_PANEL_TIME_STEP, TimeUnit.MILLISECONDS);
 			this.screenCaptureExecutor.scheduleAtFixedRate(MainEntry.screenCapture, 0, CAPTURE_TIME_STEP, TimeUnit.MILLISECONDS);
 			for(int i = 0; i < NUMBER_THREAD_IMAGE_PROC; i++)
@@ -156,6 +160,10 @@ public class MainEntry
 		MainEntry.logger.log(Level.FINE, str.toString());
 	}
 	
+	/**
+	 * The method to pause the executor(s)
+	 * @see PausableThreadPoolExecutor
+	 */
 	public void stopRunning()
 	{
 		this.mainPanelExecutor.pause();
