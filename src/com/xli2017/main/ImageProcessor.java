@@ -107,6 +107,7 @@ public class ImageProcessor implements Runnable
 		int bytesRead = sourceChannel.read(this.sourceBuf);
 		if(bytesRead > 0) // New data available
 		{
+//			System.out.println("readPipe method read bytes: " + bytesRead);
 			byte[] imgInByte = new byte[bytesRead];
 			int index = 0; // The index of imgInByte
 			this.sourceBuf.flip();

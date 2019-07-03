@@ -88,6 +88,7 @@ public class ScreenCapture implements Runnable
 					e.printStackTrace();
 				}
 			}
+			this.buf.compact();
 		}
 		else
 		{
