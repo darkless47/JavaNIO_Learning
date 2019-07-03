@@ -35,12 +35,12 @@ public class ScreenCapture implements Runnable
 	 */
 	public ScreenCapture()
 	{
-		// Toolkit to get current screen size
+		/* Toolkit to get current screen size */
 		Toolkit tk = Toolkit.getDefaultToolkit();
 		dimension = tk.getScreenSize();
 		MainEntry.logger.log(Level.FINER, "Screen size is: " + dimension.width + " " + dimension.height);
 		
-		// System Direct allocated buffer for Java NIO
+		/* System Direct allocated buffer for Java NIO */
 		this.buf = ByteBuffer.allocateDirect(MainEntry.BUFFER_SIZE);
 	}
 	
@@ -70,10 +70,12 @@ public class ScreenCapture implements Runnable
 		}
 		if(imgInByte != null)
 		{
-			
+			/* Use the buffer to store the data that going to be sent */
 			this.buf.clear();
 			this.buf.put(imgInByte);
+			/* Flip so that the buffer index can get ready for sending */
 			this.buf.flip();
+			
 			while(this.buf.hasRemaining())
 			{
 			    try
@@ -109,9 +111,9 @@ public class ScreenCapture implements Runnable
 	{ 
         try
         {
-        	// Screen capture robot
+        	/* Screen capture robot */
             Robot rb = new Robot();  
-            // Read screen
+            /* Read screen */
             BufferedImage bi = rb.createScreenCapture(rec);  
             return bi;
         }
@@ -124,15 +126,15 @@ public class ScreenCapture implements Runnable
 	
 	private Rectangle scopeAroundCursor()
 	{
-		// Get position of mouse cursor
+		/* Get position of mouse cursor */
 		Point cursorPoint = java.awt.MouseInfo.getPointerInfo().getLocation();
 		MainEntry.logger.log(Level.FINEST, "Cursor is at " + cursorPoint.x + " " + cursorPoint.y);
-		// Calculate 4 corners of the area of capturing
+		/* Calculate 4 corners of the area of capturing */
 		int[] points = {cursorPoint.x - scopeWidth/2, cursorPoint.y - scopeHeight/2,
 				cursorPoint.x + scopeWidth/2, cursorPoint.y - scopeHeight/2,
 				cursorPoint.x - scopeWidth/2, cursorPoint.y + scopeHeight/2,
 				cursorPoint.x + scopeWidth/2, cursorPoint.y + scopeHeight/2};
-		// Boundary check
+		/* Boundary check */
 		for(int i = 0; i < 8; i++)
 		{
 			if(points[i] < 0)
@@ -160,7 +162,7 @@ public class ScreenCapture implements Runnable
 //		int[] lowerLeft = {points[4], points[5]};
 //		int[] lowerRight = {points[6], points[7]};
 		
-		// Build the rectangle
+		/* Build the rectangle */
         Rectangle rec = new Rectangle(upperLeft[0], upperLeft[1], this.scopeWidth, this.scopeHeight);
         return rec;
 	}

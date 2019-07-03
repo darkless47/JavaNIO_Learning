@@ -2,6 +2,7 @@ package com.xli2017.main;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,17 +40,20 @@ public abstract class DataBox
 		/* Header length byte */
 		byte[] headerLengthByte = null;
 		
-		// Get time byte
-		/* Use this synchronized method to get date */ 
+		/* Get time byte */
     	String dateStr = null;
 		try
 		{
+			/* Format date before send 
+			 * Use this synchronized method to get date
+			 * */
 			dateStr = DateSyncUtil.formatDate(date);
 		}
 		catch (ParseException e1)
 		{
 			e1.printStackTrace();
 		}
+		/* Get the byte array so that it can be added to another byte array that contains image data */ 
 		byte dateByte[] = dateStr.getBytes();
 		
 		/*
@@ -58,18 +62,19 @@ public abstract class DataBox
 		 * 1 - Separator
 		 */
 		int headerLength = 2 + 1 + dateByte.length + 1;
-		if(headerLength > 99)
+		if(headerLength > 99) // Have a too large header length which is impossible for current version program
 		{
 			MainEntry.logger.log(Level.SEVERE, "The value of header length is too large.");
 			return null;
 		}
 		else
 		{
+			/* Get the header length in an byte array format */
 			headerLengthByte = Integer.toString(headerLength).getBytes();
 			System.out.println(headerLengthByte[0] + " " + headerLengthByte[1]);
 		}
 		
-		// Output stream for concatenating
+		/* Output stream for concatenating */
 		ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
 		try
 		{
@@ -84,7 +89,7 @@ public abstract class DataBox
 			e.printStackTrace();
 		}
 		
-		// Byte array going to be returned
+		/* Byte array going to be returned */
 		byte[] result = outputStream.toByteArray();
 		return result;
 	}
@@ -112,6 +117,8 @@ public abstract class DataBox
 		int headerLength = getHeaderLength(original);
 		/* Only copy header part of the bytes */
 		byte[] header = Arrays.copyOfRange(original, 0, headerLength);
+//		System.out.println(header.length);
+//		System.out.println(header[header.length - 1]);
 		
 		ArrayList<byte[]> headerByteArrayList = new ArrayList<byte[]>();
 		
@@ -121,32 +128,42 @@ public abstract class DataBox
 		 * 
 		 * */
 		int section = 0;
-		/* Indicate the index of start of current section */
+		/* Indicate the index for beginning of current section */
 		int indexOfSectionStart = 0;
 		
 		for(int i = 0; i<header.length; i++)
 		{
 			if (header[i] == DataBox.SEPARATOR) // Found the separator
 			{
-				if (section == 0) // For header length bytes
+//				System.out.println("Reached");
+				switch (section)
 				{
-					byte[] lengthBytes = Arrays.copyOfRange(header, indexOfSectionStart, i-1); // i-1 because we do not want separator been included
+				case 0: // For header length bytes
+					byte[] lengthBytes = Arrays.copyOfRange(header, indexOfSectionStart, i); // i-1 because we do not want separator been included
+//					System.out.println(lengthBytes.length);
 					headerByteArrayList.add(lengthBytes); // Add time bytes to return array list
 					section++; // Move to the next section
 					indexOfSectionStart = i+1; // Move the index to start of the next section
-				}
-				if (section == 1) // For time bytes
-				{
-					byte[] timeBytes = Arrays.copyOfRange(header, indexOfSectionStart, i-1); // i-1 because we do not want separator been included
+					
+					break;
+					
+				case 1: // For time bytes
+					byte[] timeBytes = Arrays.copyOfRange(header, indexOfSectionStart, i); // i-1 because we do not want separator been included
+//					System.out.println(timeBytes.length);
+//					System.out.println(timeBytes[timeBytes.length - 1]);
 					headerByteArrayList.add(timeBytes); // Add time bytes to return array list
 					section++; // Move to the next section
 					indexOfSectionStart = i+1; // Move the index to start of the next section
-				}
-				
-				// Here may add more components of the header
-				
-			}
-		}
+					
+					break;
+					
+					/* Here may add more components of the header */
+					
+					default:
+						break;
+				} // end switch
+			} // end if
+		} // end for
 		
 		/* Return the header components */
 		return headerByteArrayList;
@@ -174,12 +191,23 @@ public abstract class DataBox
 	 * @param headerByteList An byte array list contains components of a header 
 	 * @return date
 	 */
-	public Date getDate(ArrayList<byte[]> headerByteList)
+	public static Date getDate(ArrayList<byte[]> headerByteList)
 	{
-		String dateString = headerByteList.get(DataBox.SECTION_NUMBER_DATE).toString();
+		String dateString = null;
+		try
+		{
+			/* Convert an byte array to string using coding UTF-8 */
+			dateString = new String(headerByteList.get(DataBox.SECTION_NUMBER_DATE), "UTF-8");
+		}
+		catch (UnsupportedEncodingException e1)
+		{
+			e1.printStackTrace();
+		}
+
 		Date date = null;
 		try
 		{
+			/* Parse to get date from a string */
 			date = DateSyncUtil.parse(dateString);
 		}
 		catch (ParseException e)

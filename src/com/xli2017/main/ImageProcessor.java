@@ -3,6 +3,8 @@ package com.xli2017.main;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
+import java.text.ParseException;
+import java.util.Date;
 import java.util.logging.Level;
 
 /**
@@ -39,12 +41,12 @@ public class ImageProcessor implements Runnable
 	{
 		byte[] imgInByte = null;
 		
-		// Constant loop
+		/* Constant loop */
 		while(true)
 		{
 			try
 			{
-				// Try to read data from pipe
+				/* Try to read data from pipe */
 				imgInByte = this.readPipe(this.sourceChannel); // This is a synchronized method
 			}
 			catch (IOException e)
@@ -54,11 +56,24 @@ public class ImageProcessor implements Runnable
 			
 			if (imgInByte != null) // New data comes
 			{
-				// Get current thread name
+				/* Get current thread name */
 				Thread t = Thread.currentThread();
 			    String tName = t.getName();
-				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length);
+			    /* Get the time stamp of the image sample */
+				Date date = DataBox.getDate(DataBox.getHeader(imgInByte));
+				String dateString = null;
+				try
+				{
+					/* Format the date to get desired format "yyyy-MM-dd HH:mm:ss.SSS" */
+					dateString = DateSyncUtil.formatDate(date);
+				}
+				catch (ParseException e1)
+				{
+					e1.printStackTrace();
+				}
+				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
 				
+				/* Get image data */
 				imgInByte = DataBox.getData(imgInByte);
 				
 				/* Send data to GUI */
