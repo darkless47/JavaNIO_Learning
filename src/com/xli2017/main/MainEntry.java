@@ -17,7 +17,7 @@ import java.util.logging.Logger;
 public class MainEntry
 {
 	/** The size of the byte buffer to store data for pipe */
-	public static final int BUFFER_SIZE = 350000; // 350,000 is for 1920x1080, it should enough
+	public static final int BUFFER_SIZE = 300000; // 300,000 is for 1920x1080, it should enough
 	/** The number of threads will be used to run main panel task */
 	public static final int NUMBER_THREAD_MAIN_PANEL = 1;
 	/** The time step between two updates of main panel */
