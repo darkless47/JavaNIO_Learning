@@ -72,7 +72,7 @@ public class ImageProcessor implements Runnable
 				{
 					e1.printStackTrace();
 				}
-//				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
+				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
 				
 				/* Get image data */
 				imgInByte = DataBox.getData(imgInByte);
