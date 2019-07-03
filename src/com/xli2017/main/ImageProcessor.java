@@ -56,6 +56,7 @@ public class ImageProcessor implements Runnable
 			
 			if (imgInByte != null) // New data comes
 			{
+				System.out.println("Received first two bytes: " + imgInByte[0] + " " + imgInByte[1]);
 				/* Get current thread name */
 				Thread t = Thread.currentThread();
 			    String tName = t.getName();

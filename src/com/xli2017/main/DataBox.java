@@ -71,7 +71,7 @@ public abstract class DataBox
 		{
 			/* Get the header length in an byte array format */
 			headerLengthByte = Integer.toString(headerLength).getBytes();
-			System.out.println(headerLengthByte[0] + " " + headerLengthByte[1]);
+//			System.out.println(headerLengthByte[0] + " " + headerLengthByte[1]);
 		}
 		
 		/* Output stream for concatenating */
@@ -91,6 +91,14 @@ public abstract class DataBox
 		
 		/* Byte array going to be returned */
 		byte[] result = outputStream.toByteArray();
+		try
+		{
+			outputStream.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
 		return result;
 	}
 	

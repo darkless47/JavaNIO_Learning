@@ -60,9 +60,9 @@ public class ScreenCapture implements Runnable
 			imgInByte = baos.toByteArray();
 			/* Add date header here */
 			Date date = new Date();
-			imgInByte = DataBox.addHeader(imgInByte, date);
 //			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
 			baos.close();
+			imgInByte = DataBox.addHeader(imgInByte, date);
 		}
 		catch (IOException e)
 		{
@@ -70,6 +70,7 @@ public class ScreenCapture implements Runnable
 		}
 		if(imgInByte != null)
 		{
+//			System.out.println("Sent first two bytes: " + imgInByte[0] + " " + imgInByte[1]);
 			/* Use the buffer to store the data that going to be sent */
 			this.buf.clear();
 			this.buf.put(imgInByte);
