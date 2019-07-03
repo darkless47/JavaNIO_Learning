@@ -56,6 +56,7 @@ public class ImageProcessor implements Runnable
 			
 			if (imgInByte != null) // New data comes
 			{
+//				System.out.println("Received first two bytes: " + imgInByte[0] + " " + imgInByte[1]);
 				/* Get current thread name */
 				Thread t = Thread.currentThread();
 			    String tName = t.getName();
@@ -71,7 +72,7 @@ public class ImageProcessor implements Runnable
 				{
 					e1.printStackTrace();
 				}
-				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
+//				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
 				
 				/* Get image data */
 				imgInByte = DataBox.getData(imgInByte);
@@ -106,6 +107,7 @@ public class ImageProcessor implements Runnable
 		int bytesRead = sourceChannel.read(this.sourceBuf);
 		if(bytesRead > 0) // New data available
 		{
+//			System.out.println("readPipe method read bytes: " + bytesRead);
 			byte[] imgInByte = new byte[bytesRead];
 			int index = 0; // The index of imgInByte
 			this.sourceBuf.flip();
