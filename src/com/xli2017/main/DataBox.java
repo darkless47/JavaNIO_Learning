@@ -66,6 +66,7 @@ public abstract class DataBox
 		else
 		{
 			headerLengthByte = Integer.toString(headerLength).getBytes();
+			System.out.println(headerLengthByte[0] + " " + headerLengthByte[1]);
 		}
 		
 		// Output stream for concatenating
@@ -208,7 +209,7 @@ public abstract class DataBox
 	        // throw if we encounter a non-digit character
 	        if(bytes[i] < 48 || bytes[i] > 57)
 	        {
-	            MainEntry.logger.log(Level.SEVERE, "Non-digit character present");
+	            MainEntry.logger.log(Level.SEVERE, "Non-digit character present: " + bytes[i]);
 	            return -1;
 	        }
 
