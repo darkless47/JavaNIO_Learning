@@ -60,9 +60,9 @@ public class ScreenCapture implements Runnable
 			imgInByte = baos.toByteArray();
 			/* Add date header here */
 			Date date = new Date();
-//			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
 			baos.close();
 			imgInByte = DataBox.addHeader(imgInByte, date);
+			MainEntry.logger.log(Level.FINE, "Sent " + Integer.toString(imgInByte.length));
 		}
 		catch (IOException e)
 		{
@@ -79,6 +79,7 @@ public class ScreenCapture implements Runnable
 			
 			while(this.buf.hasRemaining())
 			{
+//				System.out.println("Wrote.");
 			    try
 			    {
 					MainEntry.sinkChannel_0.write(this.buf);

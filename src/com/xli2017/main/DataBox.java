@@ -22,15 +22,17 @@ import java.util.logging.Level;
  */
 public abstract class DataBox
 {
-	/** Separator character */
-	public static final byte SEPARATOR = 30; // Dec 30 = (record separator)
+	/** Package separator character */
+	public static final byte SEPARATOR_PACKAGE = 28; // Dec 28 = (file separator)
+	/** Section separator character */
+	public static final byte SEPARATOR_SECTION = 30; // Dec 30 = (record separator)
 	/** For header byte array list, to locate the section for length */
 	public static final int SECTION_NUMBER_LENGTH = 0;
 	/** For header byte array list, to locate the section for time and date */
 	public static final int SECTION_NUMBER_DATE = 1;
 	
 	/**
-	 * Add header to a byte array of data
+	 * Add header to a byte array of data and also add the end sign (Package separator character) to the data
 	 * @param original Original data byte array
 	 * @param date Time stamp
 	 * @return Concatenated byte array
@@ -60,6 +62,8 @@ public abstract class DataBox
 		 * Following calculation:
 		 * 2 - Two digits for header length, 0 ~ 99
 		 * 1 - Separator
+		 * 
+		 * Header length (2) + Section separator (1) + dateByte.length + Section separator (1)
 		 */
 		int headerLength = 2 + 1 + dateByte.length + 1;
 		if(headerLength > 99) // Have a too large header length which is impossible for current version program
@@ -79,10 +83,11 @@ public abstract class DataBox
 		try
 		{
 			outputStream.write(headerLengthByte); // Header length
-			outputStream.write(DataBox.SEPARATOR); // Separator
+			outputStream.write(DataBox.SEPARATOR_SECTION); // Separator
 			outputStream.write(dateByte); // Write time first
-			outputStream.write(DataBox.SEPARATOR); // Separator
+			outputStream.write(DataBox.SEPARATOR_SECTION); // Separator
 			outputStream.write(original); // Data
+			outputStream.write(DataBox.SEPARATOR_PACKAGE); // Separator
 		}
 		catch (IOException e)
 		{
@@ -107,74 +112,92 @@ public abstract class DataBox
 	 * @param original Boxed byte array with header
 	 * @return Original data
 	 */
-	public static byte[] getData(byte[] original)
+	public static byte[] getData(byte[] bytesWithHeader)
 	{
 		/* bytes going to be returned */
 		byte[] result = null;
 		/*Get header length */
-		int headerLength = getHeaderLength(original);
-		/* Only copy data part of the bytes */
-		result = Arrays.copyOfRange(original, headerLength, original.length);
-		/* Return the result bytes */
-		return result;
+		int headerLength = getHeaderLength(bytesWithHeader);
+		/* Check if it can not get a valid length value of the header */
+		if (headerLength != -1) // -1 means failed to get the length value
+		{
+			/* Only copy data part of the bytes */
+			result = Arrays.copyOfRange(bytesWithHeader, headerLength, bytesWithHeader.length - 1); // -1 because the last byte is always separator if everything goes well
+			/* Return the result bytes */
+			return result;
+		}
+		else // Failed to get the length value
+		{
+			/* Return null */
+			return result;
+		}
 	}
 	
-	public static ArrayList<byte[]> getHeader(byte[] original)
+	public static ArrayList<byte[]> getHeader(byte[] bytesWithHeader)
 	{
 		/*Get header length */
-		int headerLength = getHeaderLength(original);
-		/* Only copy header part of the bytes */
-		byte[] header = Arrays.copyOfRange(original, 0, headerLength);
-//		System.out.println(header.length);
-//		System.out.println(header[header.length - 1]);
-		
-		ArrayList<byte[]> headerByteArrayList = new ArrayList<byte[]>();
-		
-		/* Indicate which section the index is in
-		 * section 0 = header length bytes
-		 * section 1 = time bytes
-		 * 
-		 * */
-		int section = 0;
-		/* Indicate the index for beginning of current section */
-		int indexOfSectionStart = 0;
-		
-		for(int i = 0; i<header.length; i++)
+		int headerLength = getHeaderLength(bytesWithHeader);
+		/* Check if it can not get a valid length value of the header */
+		if (headerLength != -1) // -1 means failed to get the length value
 		{
-			if (header[i] == DataBox.SEPARATOR) // Found the separator
+			/* Only copy header part of the bytes */
+			byte[] header = Arrays.copyOfRange(bytesWithHeader, 0, headerLength);
+//			System.out.println(header.length);
+//			System.out.println(header[header.length - 1]);
+			
+			ArrayList<byte[]> headerByteArrayList = new ArrayList<byte[]>();
+			
+			/* Indicate which section the index is in
+			 * section 0 = header length bytes
+			 * section 1 = time bytes
+			 * 
+			 * */
+			int section = 0;
+			/* Indicate the index for beginning of current section */
+			int indexOfSectionStart = 0;
+			
+			for(int i = 0; i<header.length; i++)
 			{
-//				System.out.println("Reached");
-				switch (section)
+				if (header[i] == DataBox.SEPARATOR_SECTION) // Found the separator
 				{
-				case 0: // For header length bytes
-					byte[] lengthBytes = Arrays.copyOfRange(header, indexOfSectionStart, i); // i-1 because we do not want separator been included
-//					System.out.println(lengthBytes.length);
-					headerByteArrayList.add(lengthBytes); // Add time bytes to return array list
-					section++; // Move to the next section
-					indexOfSectionStart = i+1; // Move the index to start of the next section
-					
-					break;
-					
-				case 1: // For time bytes
-					byte[] timeBytes = Arrays.copyOfRange(header, indexOfSectionStart, i); // i-1 because we do not want separator been included
-//					System.out.println(timeBytes.length);
-//					System.out.println(timeBytes[timeBytes.length - 1]);
-					headerByteArrayList.add(timeBytes); // Add time bytes to return array list
-					section++; // Move to the next section
-					indexOfSectionStart = i+1; // Move the index to start of the next section
-					
-					break;
-					
-					/* Here may add more components of the header */
-					
-					default:
+//					System.out.println("Reached");
+					switch (section)
+					{
+					case 0: // For header length bytes
+						byte[] lengthBytes = Arrays.copyOfRange(header, indexOfSectionStart, i); // i-1 because we do not want separator been included
+//						System.out.println(lengthBytes.length);
+						headerByteArrayList.add(lengthBytes); // Add time bytes to return array list
+						section++; // Move to the next section
+						indexOfSectionStart = i+1; // Move the index to start of the next section
+						
 						break;
-				} // end switch
-			} // end if
-		} // end for
+						
+					case 1: // For time bytes
+						byte[] timeBytes = Arrays.copyOfRange(header, indexOfSectionStart, i); // i-1 because we do not want separator been included
+//						System.out.println(timeBytes.length);
+//						System.out.println(timeBytes[timeBytes.length - 1]);
+						headerByteArrayList.add(timeBytes); // Add time bytes to return array list
+						section++; // Move to the next section
+						indexOfSectionStart = i+1; // Move the index to start of the next section
+						
+						break;
+						
+						/* Here may add more components of the header */
+						
+						default:
+							break;
+					} // end switch
+				} // end if
+			} // end for
+			
+			/* Return the header components */
+			return headerByteArrayList;
+		}
+		else // Failed to get the length value
+		{
+			return null; /* Return null */
+		}
 		
-		/* Return the header components */
-		return headerByteArrayList;
 	}
 	
 	/**
@@ -182,10 +205,10 @@ public abstract class DataBox
 	 * @param original Boxed byte array
 	 * @return The length of the header
 	 */
-	public static int getHeaderLength(byte[] original)
+	public static int getHeaderLength(byte[] bytesWithHeader)
 	{
 		/* Get the bytes contains length of the header */
-		byte[] headerLengthByte = Arrays.copyOfRange(original, 0, 2);
+		byte[] headerLengthByte = Arrays.copyOfRange(bytesWithHeader, 0, 2);
 //		System.out.println(headerLengthByte.length);
 		/* Convert length bytes to integer */
 		int headerLength = IntFromDecimalAscii(headerLengthByte);

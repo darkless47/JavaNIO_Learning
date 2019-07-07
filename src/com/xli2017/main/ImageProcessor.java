@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.Pipe;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.logging.Level;
 
@@ -40,6 +41,9 @@ public class ImageProcessor implements Runnable
 	public void run()
 	{
 		byte[] imgInByte = null;
+		/* Get current thread name */
+		Thread t = Thread.currentThread();
+	    String tName = t.getName();
 		
 		/* Constant loop */
 		while(true)
@@ -57,41 +61,47 @@ public class ImageProcessor implements Runnable
 			if (imgInByte != null) // New data comes
 			{
 				System.out.println("Received first two bytes: " + imgInByte[0] + " " + imgInByte[1]);
-				/* Get current thread name */
-				Thread t = Thread.currentThread();
-			    String tName = t.getName();
 			    /* Get the time stamp of the image sample */
-				Date date = DataBox.getDate(DataBox.getHeader(imgInByte));
-				String dateString = null;
-				try
-				{
-					/* Format the date to get desired format "yyyy-MM-dd HH:mm:ss.SSS" */
-					dateString = DateSyncUtil.formatDate(date);
-				}
-				catch (ParseException e1)
-				{
-					e1.printStackTrace();
-				}
-				MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
-				
-				/* Get image data */
-				imgInByte = DataBox.getData(imgInByte);
-				
-				/* Send data to GUI */
-				this.sinkBuf.clear();
-				this.sinkBuf.put(imgInByte);
-				this.sinkBuf.flip();
-				while(this.sinkBuf.hasRemaining())
-				{
-				    try
-				    {
-						MainEntry.sinkChannel_1.write(this.sinkBuf);
+			    ArrayList<byte[]> headerArrayList = DataBox.getHeader(imgInByte);
+			    if (headerArrayList != null)
+			    {
+			    	Date date = DataBox.getDate(headerArrayList);
+					String dateString = null;
+					try
+					{
+						/* Format the date to get desired format "yyyy-MM-dd HH:mm:ss.SSS" */
+						dateString = DateSyncUtil.formatDate(date);
 					}
-				    catch (IOException e)
-				    {
-						e.printStackTrace();
+					catch (ParseException e1)
+					{
+						e1.printStackTrace();
 					}
-				}
+					MainEntry.logger.log(Level.FINE, tName + " received: " + imgInByte.length + ". Timestamp is " + dateString);
+					
+					/* Get image data */
+					imgInByte = DataBox.getData(imgInByte);
+					
+					/* Send data to GUI */
+					this.sinkBuf.clear();
+					this.sinkBuf.put(imgInByte);
+					this.sinkBuf.flip();
+					while(this.sinkBuf.hasRemaining())
+					{
+					    try
+					    {
+							MainEntry.sinkChannel_1.write(this.sinkBuf);
+						}
+					    catch (IOException e)
+					    {
+							e.printStackTrace();
+						}
+					}
+			    }
+			    else
+			    {
+			    	MainEntry.logger.log(Level.WARNING, "From " + tName + ", Bad data have been abandoned!");
+			    }
+				
 			}
 		}
 	}
@@ -104,10 +114,35 @@ public class ImageProcessor implements Runnable
 	 */
 	private synchronized byte[] readPipe(Pipe.SourceChannel sourceChannel) throws IOException
 	{
+		/* How many bytes has been read into the buffer */
 		int bytesRead = sourceChannel.read(this.sourceBuf);
-		if(bytesRead > 0) // New data available
+		/* How many times did this method try to read from channel */
+		int attemptTimes = 1;
+		
+		if (bytesRead > 0) // New data available
 		{
-//			System.out.println("readPipe method read bytes: " + bytesRead);
+			/* Read last byte of the data */
+			byte lastByte = this.sourceBuf.get(bytesRead - 1);
+			
+			while ((lastByte != DataBox.SEPARATOR_PACKAGE) && (attemptTimes < 5)) // Did not received an entire data within 5 times attempts
+			{
+				/* Read again */
+				bytesRead = bytesRead + sourceChannel.read(this.sourceBuf);
+				/* Check the last byte again */
+				lastByte = this.sourceBuf.get(bytesRead - 1);
+				/* Attempt time increase */
+				attemptTimes++;
+			}
+			/* Can not get an entire data with a valid separator after ran out of the max number of attempts */
+			if (lastByte != DataBox.SEPARATOR_PACKAGE)
+			{
+				MainEntry.logger.log(Level.WARNING, "The readPipe method did not receive an entire data from the sourceChannel");
+			}
+			
+			/* Get current thread name */
+			Thread t = Thread.currentThread();
+		    String tName = t.getName();
+			System.out.println(tName + " readPipe method read bytes: " + bytesRead);
 			byte[] imgInByte = new byte[bytesRead];
 			int index = 0; // The index of imgInByte
 			this.sourceBuf.flip();
